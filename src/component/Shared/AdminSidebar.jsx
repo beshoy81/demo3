@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 
 const navItems = [
@@ -10,6 +10,37 @@ const navItems = [
 const AdminSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [currentUser, setCurrentUser] = useState({ name: 'Admin User', role: 'Administrator' });
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const token = localStorage.getItem('userToken');
+        if (!token) return;
+
+        const response = await fetch('https://graduationproject1.runasp.net/api/admin/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            setCurrentUser({
+              name: data.data.fullName || data.data.name || 'Admin User',
+              role: data.data.role || 'Administrator',
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user profile:', error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
 
   return (
     <aside className="admin-sidebar">
@@ -36,10 +67,10 @@ const AdminSidebar = () => {
 
       <div className="admin-sidebar__footer">
         <div className="admin-sidebar__user">
-          <div className="admin-sidebar__avatar">AR</div>
+          <div className="admin-sidebar__avatar">{currentUser.name?.charAt(0) || 'A'}</div>
           <div>
-            <div className="admin-sidebar__user-name">Alex Rivera</div>
-            <div className="admin-sidebar__user-role">Super Admin</div>
+            <div className="admin-sidebar__user-name">{currentUser.name}</div>
+            <div className="admin-sidebar__user-role">{currentUser.role}</div>
           </div>
         </div>
         <button className="admin-sidebar__signout" onClick={() => { localStorage.removeItem('userToken'); navigate('/login'); }}>

@@ -400,7 +400,7 @@
 //           <div className="row g-3 mb-4">
 //             {[
 //               { label: "Total Users",        val: loadUsers ? null : totalUsers,                    bg: "#eef2ff", color: "#3454d1", icon: "bi-people-fill" },
-//               { label: "Verified Users",     val: loadUsers ? null : verifiedUsers,                 bg: "#e9f9ef", color: "#198754", icon: "bi-shield-check" },
+//               { label: "VERIFIED HOSTS",     val: loadUsers ? null : verifiedUsers,                 bg: "#e9f9ef", color: "#198754", icon: "bi-shield-check" },
 //               { label: "Suspended / Pending",val: loadUsers ? null : suspendedUsers + pendingUsers, bg: "#fdecec", color: "#dc3545", icon: "bi-slash-circle" },
 //             ].map((m, i) => (
 //               <div key={i} className="col-md-4">
@@ -2543,6 +2543,9 @@
 
 
 
+
+
+
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import AdminSidebar from '../Shared/AdminSidebar';
@@ -2613,83 +2616,36 @@ const Toast = ({ msg, type, onClose }) => {
 };
 
 // ============================================================
-// STATUS BADGE COMPONENT
+// STATUS BADGE COMPONENT (table + profile snippet)
 // ============================================================
-const StatusBadge = ({ user }) => {
+const StatusBadge = ({ user, large }) => {
   const isDeleted = isUserDeleted(user);
-  
+  const baseStyle = {
+    padding: large ? "6px 18px" : "4px 12px",
+    borderRadius: "20px",
+    fontSize: large ? "13px" : "12px",
+    fontWeight: 600,
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "6px",
+  };
+
   if (isDeleted) {
-    return (
-      <span style={{
-        background: "#fee2e2",
-        color: "#991b1b",
-        padding: "4px 12px",
-        borderRadius: "20px",
-        fontSize: "12px",
-        fontWeight: 600,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "6px",
-      }}>
-        <i className="bi bi-trash-fill"></i> Deleted
-      </span>
-    );
+    return <span style={{ ...baseStyle, background: "#fee2e2", color: "#991b1b" }}><i className="bi bi-trash-fill"></i> Deleted</span>;
   }
-  if (user?.status === "Verified" || user?.isVerified === true || user?.userStatus === "Verified") {
-    return (
-      <span style={{
-        background: "#e6f7e6",
-        color: "#2e7d32",
-        padding: "4px 12px",
-        borderRadius: "20px",
-        fontSize: "12px",
-        fontWeight: 600,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "6px",
-      }}>
-        <i className="bi bi-patch-check-fill"></i> Verified
-      </span>
-    );
+  if (user?.userStatus === "Suspended") {
+    return <span style={{ ...baseStyle, background: "#dc2626", color: "#fff" }}><i className="bi bi-slash-circle"></i> Suspended</span>;
   }
-  if (user?.status === "Suspended" || user?.isSuspended === true || user?.userStatus === "Suspended") {
-    return (
-      <span style={{
-        background: "#ffebee",
-        color: "#c62828",
-        padding: "4px 12px",
-        borderRadius: "20px",
-        fontSize: "12px",
-        fontWeight: 600,
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "6px",
-      }}>
-        <i className="bi bi-slash-circle"></i> Suspended
-      </span>
-    );
+  if (user?.userStatus === "Verified") {
+    return <span style={{ ...baseStyle, background: "#e6f7e6", color: "#2e7d32" }}><i className="bi bi-patch-check-fill"></i> Verified</span>;
   }
-  return (
-    <span style={{
-      background: "#fff3e0",
-      color: "#ed6c02",
-      padding: "4px 12px",
-      borderRadius: "20px",
-      fontSize: "12px",
-      fontWeight: 600,
-      display: "inline-flex",
-      alignItems: "center",
-      gap: "6px",
-    }}>
-      <i className="bi bi-hourglass-split"></i> Pending Review
-    </span>
-  );
+  return <span style={{ ...baseStyle, background: "#fff3e0", color: "#ed6c02" }}><i className="bi bi-hourglass-split"></i> Pending</span>;
 };
 
 // ============================================================
 // STATS CARD COMPONENT
 // ============================================================
-const StatsCard = ({ title, value, icon, color }) => {
+const StatsCard = ({ title, value }) => {
   return (
     <div style={{
       background: "#fff",
@@ -2698,33 +2654,26 @@ const StatsCard = ({ title, value, icon, color }) => {
       boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
       border: "1px solid #e5e7eb"
     }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-        <div style={{
-          width: "48px",
-          height: "48px",
-          borderRadius: "12px",
-          background: color || "#eef2ff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: "24px",
-          color: "#1e3a8a"
-        }}>
-          <i className={`bi ${icon}`}></i>
-        </div>
-      </div>
-      <div style={{ fontSize: "28px", fontWeight: "bold", color: "#1f2937", marginBottom: "4px" }}>
+      <div style={{ fontSize: "28px", fontWeight: "bold", color: "#1f2937", marginBottom: "8px" }}>
         {typeof value === "number" ? value.toLocaleString() : value}
       </div>
-      <div style={{ fontSize: "14px", color: "#6b7280" }}>{title}</div>
+      <div style={{ fontSize: "14px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>{title}</div>
     </div>
   );
 };
 
 // ============================================================
-// CONFIRM MODAL
+// CONFIRM MODAL (generic, supports delete / suspend / verify / reactivate)
 // ============================================================
-const ConfirmModal = ({ title, message, onConfirm, onCancel, loading }) => {
+const ACTION_CONFIG = {
+  delete: { icon: "bi-trash-fill", iconBg: "#fee2e2", iconColor: "#dc2626", confirmBg: "#dc2626", confirmLabel: "Delete", confirmIcon: "bi-check-lg" },
+  suspend: { icon: "bi-exclamation-triangle-fill", iconBg: "#fef3c7", iconColor: "#92400e", confirmBg: "#f59e0b", confirmLabel: "Suspend", confirmIcon: "bi-slash-circle" },
+  verify: { icon: "bi-patch-check-fill", iconBg: "#dcfce7", iconColor: "#15803d", confirmBg: "#10b981", confirmLabel: "Verify", confirmIcon: "bi-check-lg" },
+  reactivate: { icon: "bi-arrow-counterclockwise", iconBg: "#dbeafe", iconColor: "#1e3a8a", confirmBg: "#2563eb", confirmLabel: "Reactivate", confirmIcon: "bi-check-lg" },
+};
+
+const ConfirmModal = ({ action, title, message, onConfirm, onCancel, loading }) => {
+  const config = ACTION_CONFIG[action] || ACTION_CONFIG.delete;
   return (
     <div
       onClick={onCancel}
@@ -2758,19 +2707,21 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel, loading }) => {
               width: "48px",
               height: "48px",
               borderRadius: "50%",
-              background: "#fee2e2",
+              background: config.iconBg,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               fontSize: "24px",
-              color: "#dc2626",
+              color: config.iconColor,
             }}
           >
-            <i className="bi bi-exclamation-triangle-fill"></i>
+            <i className={`bi ${config.icon}`}></i>
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: "18px", fontWeight: 600 }}>{title}</h3>
-            <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#6b7280" }}>This action cannot be undone</p>
+            <p style={{ margin: "4px 0 0", fontSize: "13px", color: "#6b7280" }}>
+              {action === "delete" ? "This action cannot be undone" : "You can change this later if needed"}
+            </p>
           </div>
         </div>
         <p style={{ fontSize: "14px", color: "#374151", marginBottom: "24px" }}>{message}</p>
@@ -2797,7 +2748,7 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel, loading }) => {
               padding: "8px 20px",
               borderRadius: "8px",
               border: "none",
-              background: "#dc2626",
+              background: config.confirmBg,
               color: "#fff",
               cursor: "pointer",
               fontSize: "14px",
@@ -2814,8 +2765,8 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel, loading }) => {
               </>
             ) : (
               <>
-                <i className="bi bi-check-lg"></i>
-                Confirm
+                <i className={`bi ${config.confirmIcon}`}></i>
+                {config.confirmLabel}
               </>
             )}
           </button>
@@ -2826,22 +2777,17 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel, loading }) => {
 };
 
 // ============================================================
-// USER DETAILS PAGE - COMPLETE WITH API DATA
+// USER DETAILS PAGE - matches the Pending / Suspended mockups
 // ============================================================
-const UserDetailsPage = ({ user, onBack, onDelete, onSuspend }) => {
+const UserDetailsPage = ({ user, onBack, onAction }) => {
   if (!user) return null;
 
   console.log("📋 Full User Details from API:", user);
 
-  const getValue = (key) => {
-    const value = user[key];
-    if (value === undefined || value === null) return null;
-    if (typeof value === "boolean") return value ? "Yes" : "No";
-    if (key === "birthDate" || key === "createdAt" || key === "deletedAt" || key === "suspendedAt") {
-      return formatDateLong(value);
-    }
-    return value;
-  };
+  const isDeleted = isUserDeleted(user);
+  const isSuspended = user.userStatus === "Suspended";
+  const isPending = user.userStatus === "Pending" || (!user.userStatus);
+  const isVerified = user.userStatus === "Verified";
 
   const getLocation = () => {
     const parts = [];
@@ -2850,375 +2796,359 @@ const UserDetailsPage = ({ user, onBack, onDelete, onSuspend }) => {
     return parts.length > 0 ? parts.join(", ") : "Not provided";
   };
 
-  const renderStars = (rating) => {
-    return (
-      <div style={{ display: "flex", gap: "2px", color: "#fbbf24" }}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <i key={star} className={`bi ${star <= Math.round(rating) ? "bi-star-fill" : "bi-star"}`} style={{ fontSize: "12px" }}></i>
-        ))}
-      </div>
-    );
-  };
+  // ⚠️ NOTE: مفيش حقل suspensionReason في الـ sample اللي بعتها، فهنا fallback نص عام.
+  // لو الـ API بيرجع user.suspensionReason استخدمه زي ما هو.
+  const suspensionReasonText = user.suspensionReason
+    || "This account was suspended due to violations of the platform's community guidelines.";
+
+  const renderStars = (rating) => (
+    <div style={{ display: "flex", gap: "2px", color: "#fbbf24" }}>
+      {[1, 2, 3, 4, 5].map((star) => (
+        <i key={star} className={`bi ${star <= Math.round(rating) ? "bi-star-fill" : "bi-star"}`} style={{ fontSize: "12px" }}></i>
+      ))}
+    </div>
+  );
+
+  const sectionCardStyle = { background: "#fff", borderRadius: "16px", border: "1px solid #e5e7eb", marginBottom: "24px", overflow: "hidden" };
+  const sectionHeaderStyle = { padding: "20px 24px", borderBottom: "1px solid #e5e7eb", background: "#f9fafb", display: "flex", justifyContent: "space-between", alignItems: "center" };
+  const labelStyle = { fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 };
+  const valueStyle = { marginTop: "6px", fontSize: "14px", color: "#1f2937", fontWeight: 500 };
 
   return (
-    <div style={{ background: "#f5f6fa", minHeight: "100vh" }}>
-      {/* Header */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #e5e7eb", position: "sticky", top: 0, zIndex: 100 }}>
-        <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "16px 32px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 16px", background: "#eef2ff", border: "none", borderRadius: "8px", cursor: "pointer", color: "#1e3a8a", fontWeight: 500, fontSize: "14px" }}>
-              <i className="bi bi-arrow-left"></i> Back to Users
-            </button>
-            <div>
-              <h1 style={{ fontSize: "20px", margin: 0, color: "#1f2937" }}>User Management Detail</h1>
-              <p style={{ fontSize: "13px", color: "#6b7280", margin: "4px 0 0" }}>
-                Reviewing profile and verification for {user.fullName || user.email}
-              </p>
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <button onClick={() => onSuspend && onSuspend(user)} style={{ padding: "8px 20px", background: "#fef3c7", border: "none", borderRadius: "8px", cursor: "pointer", color: "#92400e", fontWeight: 500, display: "flex", alignItems: "center", gap: "8px" }}>
-              <i className="bi bi-slash-circle"></i> Suspend user
-            </button>
-            <button onClick={() => onDelete && onDelete(user)} style={{ padding: "8px 20px", background: "#fee2e2", border: "none", borderRadius: "8px", cursor: "pointer", color: "#dc2626", fontWeight: 500, display: "flex", alignItems: "center", gap: "8px" }}>
+    <div>
+      {/* ===== TITLE + ACTION BUTTONS ===== */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "20px" }}>
+        <div>
+          <button onClick={onBack} style={{ display: "flex", alignItems: "center", gap: "6px", padding: "0", marginBottom: "10px", background: "none", border: "none", cursor: "pointer", color: "#1e3a8a", fontWeight: 500, fontSize: "13px" }}>
+            <i className="bi bi-arrow-left"></i> Back to Users
+          </button>
+          <h1 style={{ fontSize: "22px", margin: 0, color: "#1f2937", fontWeight: 700 }}>User Management Detail</h1>
+          <p style={{ fontSize: "13px", color: "#6b7280", margin: "4px 0 0" }}>
+            Reviewing profile and verification for {user.fullName || user.email}
+          </p>
+        </div>
+
+        {!isDeleted && (
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            {isPending && (
+              <button onClick={() => onAction("verify")} style={{ padding: "10px 20px", background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <i className="bi bi-check-circle-fill"></i> Verify User
+              </button>
+            )}
+            {!isSuspended && (
+              <button onClick={() => onAction("suspend")} style={{ padding: "10px 20px", background: "#f59e0b", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <i className="bi bi-exclamation-triangle-fill"></i> Suspend user
+              </button>
+            )}
+            {isSuspended && (
+              <button onClick={() => onAction("reactivate")} style={{ padding: "10px 20px", background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <i className="bi bi-arrow-counterclockwise"></i> Reactivate User
+              </button>
+            )}
+            <button onClick={() => onAction("delete")} style={{ padding: "10px 20px", background: "#fff", color: "#dc2626", border: "1px solid #dc2626", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "13px", display: "flex", alignItems: "center", gap: "8px" }}>
               <i className="bi bi-trash"></i> Delete User
             </button>
           </div>
-        </div>
+        )}
       </div>
 
-      <div style={{ maxWidth: "1400px", margin: "0 auto", padding: "32px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "32px" }}>
-          
-          {/* LEFT COLUMN */}
-          <div>
-            {/* Personal Information Card */}
-            <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e5e7eb", marginBottom: "24px", overflow: "hidden" }}>
-              <div style={{ padding: "20px 24px", borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
+      {/* ===== SUSPENDED BANNER ===== */}
+      {isSuspended && (
+        <div style={{ background: "#fee2e2", border: "1px solid #fecaca", borderRadius: "12px", padding: "16px 20px", marginBottom: "24px", display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "16px", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "12px" }}>
+            <i className="bi bi-exclamation-triangle-fill" style={{ color: "#dc2626", fontSize: "18px", marginTop: "2px" }}></i>
+            <div>
+              <div style={{ fontWeight: 700, color: "#991b1b", fontSize: "14px", marginBottom: "4px" }}>
+                Account Suspended
+              </div>
+              <p style={{ margin: 0, fontSize: "13px", color: "#7f1d1d", lineHeight: "1.5" }}>
+                This user account was suspended on {formatDateLong(user.suspendedAt)}, {suspensionReasonText}
+              </p>
+            </div>
+          </div>
+          <a href="#" style={{ fontSize: "13px", color: "#991b1b", fontWeight: 600, textDecoration: "underline", whiteSpace: "nowrap" }}>
+            View Reports
+          </a>
+        </div>
+      )}
+
+      {/* ===== MAIN CONTENT ===== */}
+      <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: "24px" }}>
+
+        {/* LEFT - Profile snippet */}
+        <div>
+          <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e5e7eb", padding: "24px", position: "sticky", top: "20px" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{
+                width: "72px", height: "72px", borderRadius: "50%", margin: "0 auto 12px", overflow: "hidden",
+                background: "#eef2ff", display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: "28px", fontWeight: "bold", color: "#1e3a8a"
+              }}>
+                {user.profilePicture ? (
+                  <img src={user.profilePicture} alt={user.fullName} style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    onError={(e) => { e.target.style.display = "none"; }} />
+                ) : (
+                  user.fullName?.charAt(0) || user.firstName?.charAt(0) || user.email?.charAt(0) || "U"
+                )}
+              </div>
+              <h2 style={{ margin: "0 0 10px", fontSize: "17px", fontWeight: 700, color: "#1f2937" }}>
+                {user.fullName || user.firstName || "User"}
+              </h2>
+              <StatusBadge user={user} large />
+            </div>
+
+            <div style={{ marginTop: "20px" }}>
+              <label style={labelStyle}>ABOUT</label>
+              <div style={{ marginTop: "8px", padding: "12px", background: "#f9fafb", borderRadius: "10px" }}>
+                <p style={{ margin: 0, fontSize: "13px", color: "#4b5563", lineHeight: "1.5", fontStyle: "italic" }}>
+                  "{user.aboutMe || user.bio || `Host profile for ${user.fullName || user.firstName || "User"}`}"
+                </p>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <label style={labelStyle}>JOIN DATE</label>
+              <span style={{ fontSize: "13px", color: "#1f2937", fontWeight: 600 }}>{formatDate(user.createdAt)}</span>
+            </div>
+
+            {isSuspended && (
+              <div style={{ marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label style={{ ...labelStyle, color: "#dc2626" }}>SUSPEND AT</label>
+                <span style={{ fontSize: "13px", color: "#dc2626", fontWeight: 600 }}>{formatDate(user.suspendedAt)}</span>
+              </div>
+            )}
+
+            {isDeleted && (
+              <div style={{ marginTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <label style={{ ...labelStyle, color: "#dc2626" }}>DELETED AT</label>
+                <span style={{ fontSize: "13px", color: "#dc2626", fontWeight: 600 }}>{formatDate(user.deletedAt)}</span>
+              </div>
+            )}
+
+            <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #e5e7eb" }}>
+              <label style={labelStyle}>USER ID</label>
+              <p style={{ marginTop: "6px", fontSize: "11px", color: "#9ca3af", fontFamily: "monospace", wordBreak: "break-all", margin: 0 }}>
+                {user.id}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT - Detail cards */}
+        <div>
+          {/* Personal Information */}
+          <div style={sectionCardStyle}>
+            <div style={sectionHeaderStyle}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#1f2937" }}>
+                <i className="bi bi-person-circle me-2"></i>Personal Information
+              </h3>
+            </div>
+            <div style={{ padding: "24px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px" }}>
+                <div>
+                  <label style={labelStyle}>EMAIL ADDRESS</label>
+                  <p style={valueStyle}>{user.email || "Not provided"}</p>
+                </div>
+                <div>
+                  <label style={labelStyle}>PHONE NUMBER</label>
+                  <p style={valueStyle}>{user.phoneNumber || "Not provided"}</p>
+                </div>
+                <div>
+                  <label style={labelStyle}>LOCATION</label>
+                  <p style={valueStyle}>{getLocation()}</p>
+                </div>
+                <div>
+                  <label style={labelStyle}>GENDER</label>
+                  <p style={valueStyle}>{user.gender || "Not provided"}</p>
+                </div>
+              </div>
+              <div style={{ marginTop: "16px" }}>
+                <label style={labelStyle}>BIRTHDAY</label>
+                <p style={valueStyle}>{formatDateLong(user.birthDate)}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Education & Career */}
+          {(user.fieldOfStudy || user.university || user.jobTitle) && (
+            <div style={sectionCardStyle}>
+              <div style={sectionHeaderStyle}>
                 <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#1f2937" }}>
-                  <i className="bi bi-person-circle me-2"></i>Personal Information
+                  <i className="bi bi-mortarboard me-2"></i>Education & Career
                 </h3>
               </div>
               <div style={{ padding: "24px" }}>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px" }}>
-                  <div>
-                    <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>EMAIL ADDRESS</label>
-                    <p style={{ marginTop: "6px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>{getValue("email") || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>PHONE NUMBER</label>
-                    <p style={{ marginTop: "6px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>{getValue("phoneNumber") || "Not provided"}</p>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>LOCATION</label>
-                    <p style={{ marginTop: "6px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>{getLocation()}</p>
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>GENDER</label>
-                    <p style={{ marginTop: "6px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>{getValue("gender") || "Not provided"}</p>
-                  </div>
-                </div>
-                <div style={{ marginTop: "16px" }}>
-                  <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>BIRTHDAY</label>
-                  <p style={{ marginTop: "6px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>{getValue("birthDate") || "Not provided"}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Education & Career Card */}
-            {(user.fieldOfStudy || user.university || user.jobTitle) && (
-              <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e5e7eb", marginBottom: "24px", overflow: "hidden" }}>
-                <div style={{ padding: "20px 24px", borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
-                  <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#1f2937" }}>
-                    <i className="bi bi-mortarboard me-2"></i>Education & Career
-                  </h3>
-                </div>
-                <div style={{ padding: "24px" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "20px" }}>
-                    {user.fieldOfStudy && (
-                      <div>
-                        <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>EDUCATION</label>
-                        <p style={{ marginTop: "6px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>{user.fieldOfStudy}</p>
-                      </div>
-                    )}
-                    {user.university && (
-                      <div>
-                        <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>UNIVERSITY</label>
-                        <p style={{ marginTop: "6px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>{user.university}</p>
-                      </div>
-                    )}
-                    {user.jobTitle && (
-                      <div>
-                        <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>CURRENT JOB</label>
-                        <p style={{ marginTop: "6px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>{user.jobTitle}</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Verification Documents Card */}
-            <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e5e7eb", marginBottom: "24px", overflow: "hidden" }}>
-              <div style={{ padding: "20px 24px", borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#1f2937" }}>
-                  <i className="bi bi-file-text me-2"></i>Verification Documents
-                </h3>
-              </div>
-              <div style={{ padding: "24px" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "16px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <i className="bi bi-card-id" style={{ fontSize: "20px", color: "#1e3a8a" }}></i>
-                    <span style={{ fontSize: "14px", color: "#1f2937" }}>National ID Card</span>
-                    {user.idImage ? (
-                      <span style={{ background: "#e6f7e6", color: "#2e7d32", padding: "2px 8px", borderRadius: "12px", fontSize: "11px" }}>Uploaded</span>
-                    ) : (
-                      <span style={{ background: "#fef3c7", color: "#92400e", padding: "2px 8px", borderRadius: "12px", fontSize: "11px" }}>Not Uploaded</span>
-                    )}
-                  </div>
-                  <button style={{ padding: "6px 12px", background: "#eef2ff", border: "none", borderRadius: "6px", cursor: "pointer", color: "#1e3a8a", fontSize: "12px" }}>
-                    View Details
-                  </button>
-                </div>
-                {user.profilePicture && (
-                  <div style={{ marginTop: "12px", display: "flex", alignItems: "center", gap: "12px" }}>
-                    <i className="bi bi-image" style={{ fontSize: "20px", color: "#1e3a8a" }}></i>
-                    <span style={{ fontSize: "14px", color: "#1f2937" }}>Profile Picture</span>
-                    <span style={{ background: "#e6f7e6", color: "#2e7d32", padding: "2px 8px", borderRadius: "12px", fontSize: "11px" }}>Uploaded</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Active Listings Card - From API */}
-            <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e5e7eb", marginBottom: "24px", overflow: "hidden" }}>
-              <div style={{ padding: "20px 24px", borderBottom: "1px solid #e5e7eb", background: "#f9fafb", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#1f2937" }}>
-                  <i className="bi bi-building me-2"></i>Active Listings ({user.totalListings || 0})
-                </h3>
-                <button style={{ padding: "4px 12px", background: "#eef2ff", border: "none", borderRadius: "6px", cursor: "pointer", fontSize: "12px" }}>View All</button>
-              </div>
-              <div style={{ padding: "24px" }}>
-                {user.listings && user.listings.length > 0 ? (
-                  user.listings.map((listing) => (
-                    <div key={listing.propertyId} style={{
-                      marginBottom: "16px",
-                      padding: "16px",
-                      background: "#f9fafb",
-                      borderRadius: "12px",
-                      border: "1px solid #e5e7eb"
-                    }}>
-                      <div style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
-                        <div style={{
-                          width: "80px",
-                          height: "80px",
-                          borderRadius: "8px",
-                          background: "#e5e7eb",
-                          overflow: "hidden",
-                          flexShrink: 0
-                        }}>
-                          {listing.image ? (
-                            <img 
-                              src={listing.image} 
-                              alt={listing.title} 
-                              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                              onError={(e) => { e.target.src = "https://via.placeholder.com/80x80?text=No+Image"; }}
-                            />
-                          ) : (
-                            <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px", color: "#6b7280" }}>
-                              🏠
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: "15px", marginBottom: "4px" }}>{listing.title || "Untitled"}</div>
-                          <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "4px" }}>
-                            <i className="bi bi-geo-alt"></i> {listing.city || listing.government || "Location not specified"}
-                          </div>
-                          <div style={{ display: "flex", gap: "16px", fontSize: "12px", color: "#6b7280", flexWrap: "wrap" }}>
-                            <span><i className="bi bi-house"></i> {listing.type || "N/A"}</span>
-                            <span><i className="bi bi-bed"></i> {listing.beds || 0} beds</span>
-                            <span><i className="bi bi-droplet"></i> {listing.baths || 0} baths</span>
-                            <span><i className="bi bi-rulers"></i> {listing.size || 0} m²</span>
-                            {listing.wifi && <span style={{ color: "#10b981" }}><i className="bi bi-wifi"></i> WiFi</span>}
-                          </div>
-                          {listing.rating > 0 && (
-                            <div style={{ marginTop: "4px" }}>
-                              {renderStars(listing.rating)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                        <button style={{ padding: "4px 10px", background: "#eef2ff", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "11px", color: "#1e3a8a" }}>
-                          <i className="bi bi-star"></i> View Reviews
-                        </button>
-                        <button style={{ padding: "4px 10px", background: "#eef2ff", border: "none", borderRadius: "4px", cursor: "pointer", fontSize: "11px", color: "#1e3a8a" }}>
-                          <i className="bi bi-eye"></i> View Details
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
-                    <i className="bi bi-building" style={{ fontSize: "24px", display: "block", marginBottom: "8px" }}></i>
-                    No active listings ({user.totalListings || 0} total)
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Recent Reviews Card - From API */}
-            <div style={{ background: "#fff", borderRadius: "16px", border: "1px solid #e5e7eb", overflow: "hidden" }}>
-              <div style={{ padding: "20px 24px", borderBottom: "1px solid #e5e7eb", background: "#f9fafb" }}>
-                <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#1f2937" }}>
-                  <i className="bi bi-star me-2"></i>Recent Reviews ({user.reviews?.length || 0})
-                </h3>
-              </div>
-              <div style={{ padding: "24px" }}>
-                {user.reviews && user.reviews.length > 0 ? (
-                  user.reviews.map((review, index) => (
-                    <div key={index} style={{ marginBottom: "20px", paddingBottom: "20px", borderBottom: index < user.reviews.length - 1 ? "1px solid #e5e7eb" : "none" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
-                        <div style={{
-                          width: "32px",
-                          height: "32px",
-                          borderRadius: "50%",
-                          background: "#1e3a8a",
-                          color: "#fff",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontWeight: "bold",
-                          fontSize: "14px"
-                        }}>
-                          {review.reviewerName?.charAt(0) || "U"}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: "14px" }}>{review.reviewerName || "Anonymous"}</div>
-                          <div style={{ fontSize: "11px", color: "#6b7280" }}>{formatDateLong(review.createdAt) || "Recent"}</div>
-                        </div>
-                        <div style={{ marginLeft: "auto" }}>
-                          {renderStars(review.rating || 0)}
-                        </div>
-                      </div>
-                      <p style={{ fontSize: "13px", color: "#4b5563", lineHeight: "1.5", margin: "0 0 0 44px" }}>
-                        "{review.comment || "No comment provided"}"
+                  {(user.fieldOfStudy || user.university) && (
+                    <div>
+                      <label style={labelStyle}>EDUCATION</label>
+                      <p style={valueStyle}>
+                        {[user.fieldOfStudy, user.university].filter(Boolean).join(" at ")}
                       </p>
                     </div>
-                  ))
-                ) : (
-                  <div style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
-                    <i className="bi bi-chat-dots" style={{ fontSize: "24px", display: "block", marginBottom: "8px" }}></i>
-                    No reviews yet
-                  </div>
-                )}
+                  )}
+                  {user.jobTitle && (
+                    <div>
+                      <label style={labelStyle}>CURRENT JOB</label>
+                      <p style={valueStyle}>{user.jobTitle}</p>
+                    </div>
+                  )}
+                </div>
               </div>
+            </div>
+          )}
+
+          {/* Verification Documents */}
+          <div style={sectionCardStyle}>
+            <div style={sectionHeaderStyle}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#1f2937" }}>
+                <i className="bi bi-file-text me-2"></i>Verification Documents
+              </h3>
+              {/* ⚠️ NOTE: محتاج تربطها بحقل تحقق مستقل لو متاح في الـ API، دلوقتي بتعتمد على userStatus العام */}
+              {isVerified ? (
+                <span style={{ background: "#e6f7e6", color: "#2e7d32", padding: "3px 12px", borderRadius: "12px", fontSize: "11px", fontWeight: 600 }}>Verified</span>
+              ) : isSuspended ? (
+                <span style={{ background: "#fee2e2", color: "#991b1b", padding: "3px 12px", borderRadius: "12px", fontSize: "11px", fontWeight: 600 }}>Suspended</span>
+              ) : (
+                <span style={{ background: "#fef3c7", color: "#92400e", padding: "3px 12px", borderRadius: "12px", fontSize: "11px", fontWeight: 600 }}>Pending Review</span>
+              )}
+            </div>
+            <div style={{ padding: "24px" }}>
+              {user.idImage ? (
+                <div>
+                  <div style={{ width: "100%", maxWidth: "420px", height: "220px", borderRadius: "12px", overflow: "hidden", background: "#e5e7eb" }}>
+                    <img
+                      src={user.idImage}
+                      alt="National ID Card"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                      onError={(e) => { e.target.src = "https://placehold.co/420x220/e5e7eb/6b7280?text=ID+Card"; }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px", maxWidth: "420px" }}>
+                    <span style={{ fontSize: "13px", color: "#1f2937", fontWeight: 500 }}>
+                      <i className="bi bi-card-id me-1"></i> National ID Card
+                    </span>
+                    <a href={user.idImage} target="_blank" rel="noreferrer" style={{ width: "30px", height: "30px", borderRadius: "8px", background: "#eef2ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#1e3a8a", textDecoration: "none" }}>
+                      <i className="bi bi-download"></i>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <i className="bi bi-card-id" style={{ fontSize: "20px", color: "#9ca3af" }}></i>
+                  <span style={{ fontSize: "14px", color: "#6b7280" }}>National ID Card — Not Uploaded</span>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* RIGHT COLUMN - Profile Card */}
-          <div>
-            <div style={{
-              background: "#fff",
-              borderRadius: "16px",
-              border: "1px solid #e5e7eb",
-              position: "sticky",
-              top: "100px",
-              overflow: "hidden"
-            }}>
-              {/* Profile Header */}
-              <div style={{
-                background: "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)",
-                padding: "32px 24px",
-                textAlign: "center",
-                color: "#fff"
-              }}>
-                <div style={{
-                  width: "100px",
-                  height: "100px",
-                  borderRadius: "50%",
-                  background: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 16px",
-                  fontSize: "48px",
-                  fontWeight: "bold",
-                  color: "#1e3a8a",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
-                }}>
-                  {user.fullName?.charAt(0) || user.firstName?.charAt(0) || user.email?.charAt(0) || "U"}
+          {/* Active Listings */}
+          <div style={sectionCardStyle}>
+            <div style={sectionHeaderStyle}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#1f2937" }}>
+                <i className="bi bi-building me-2"></i>Active Listings
+              </h3>
+            </div>
+            <div style={{ padding: "24px" }}>
+              {user.listings && user.listings.length > 0 ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
+                  {user.listings.map((listing) => (
+                    <div key={`${listing.propertyId}-${listing.roomId || "main"}`} style={{ border: "1px solid #e5e7eb", borderRadius: "12px", overflow: "hidden", background: "#fff" }}>
+                      <div style={{ height: "130px", background: "#e5e7eb", margin: "0 10px", borderRadius: "8px", overflow: "hidden" }}>
+                        {listing.image ? (
+                          <img
+                            src={listing.image}
+                            alt={listing.title}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                            onError={(e) => { e.target.src = "https://placehold.co/300x180/e5e7eb/6b7280?text=No+Image"; }}
+                          />
+                        ) : (
+                          <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "24px" }}>🏠</div>
+                        )}
+                      </div>
+                      <div style={{ padding: "12px 14px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "11px", fontWeight: 700, color: "#6b7280", letterSpacing: "0.04em" }}>
+                              {listing.type || "N/A"}
+                            </span>
+                            {listing.roomId != null && (
+                              <span style={{ background: "#eef2ff", color: "#1e3a8a", padding: "1px 8px", borderRadius: "10px", fontSize: "10px", fontWeight: 600 }}>
+                                Room #{listing.roomId}
+                              </span>
+                            )}
+                          </span>
+                          {listing.rating > 0 && (
+                            <span style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", fontWeight: 700, color: "#1f2937" }}>
+                              <i className="bi bi-star-fill" style={{ color: "#fbbf24", fontSize: "11px" }}></i>{listing.rating.toFixed(1)}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: "14px", color: "#1f2937", marginBottom: "4px" }}>{listing.title || "Untitled"}</div>
+                        <div style={{ fontSize: "12px", color: "#6b7280", marginBottom: "8px" }}>
+                          <i className="bi bi-geo-alt"></i> {[listing.city, listing.government].filter(Boolean).join(", ") || "Location not specified"}
+                        </div>
+                        <div style={{ display: "flex", gap: "12px", fontSize: "12px", color: "#6b7280", flexWrap: "wrap", marginBottom: "12px" }}>
+                          <span><i className="bi bi-house"></i> {listing.beds ?? 0} Bed{listing.beds === 1 ? "" : "s"}</span>
+                          <span><i className="bi bi-droplet"></i> {listing.baths ?? 0} Bath{listing.baths === 1 ? "" : "s"}</span>
+                          <span><i className="bi bi-rulers"></i> {listing.size ?? 0} m²</span>
+                          {listing.wifi && <span style={{ color: "#10b981" }}><i className="bi bi-wifi"></i> High-Speed</span>}
+                          {listing.capacity != null && (
+                            <span><i className="bi bi-people"></i> {listing.capacity} guest{listing.capacity === 1 ? "" : "s"}</span>
+                          )}
+                          {listing.sharedBathroom != null && (
+                            <span><i className="bi bi-droplet-half"></i> {listing.sharedBathroom ? "Shared bathroom" : "Private bathroom"}</span>
+                          )}
+                        </div>
+                        <button style={{ width: "100%", padding: "8px", background: "#1e3a8a", color: "#fff", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: 600, fontSize: "13px" }}>
+                          View Details
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <h2 style={{ margin: "0 0 8px", fontSize: "20px", fontWeight: 700 }}>
-                  {user.fullName || user.firstName || "User"}
-                </h2>
-                <div style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  background: "rgba(255,255,255,0.2)",
-                  padding: "4px 12px",
-                  borderRadius: "20px",
-                  fontSize: "12px"
-                }}>
-                  <i className="bi bi-patch-check-fill"></i>
-                  {user.userStatus === "Verified" ? "Verified" : (user.userStatus || "Pending Verification")}
+              ) : (
+                <div style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
+                  <i className="bi bi-building" style={{ fontSize: "24px", display: "block", marginBottom: "8px" }}></i>
+                  No active listings
                 </div>
-              </div>
+              )}
+            </div>
+          </div>
 
-              {/* Profile Content */}
-              <div style={{ padding: "24px" }}>
-                {/* About Section */}
-                <div style={{ marginBottom: "24px" }}>
-                  <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>ABOUT</label>
-                  <p style={{ marginTop: "8px", fontSize: "14px", color: "#4b5563", lineHeight: "1.5", fontStyle: "italic" }}>
-                    "{user.aboutMe || user.bio || `Host profile for ${user.fullName || user.firstName || "User"}`}"
-                  </p>
+          {/* Recent Reviews */}
+          <div style={{ ...sectionCardStyle, marginBottom: 0 }}>
+            <div style={sectionHeaderStyle}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600, color: "#1f2937" }}>
+                <i className="bi bi-star me-2"></i>Recent Reviews ({user.reviews?.length || 0})
+              </h3>
+              <a href="#" style={{ fontSize: "12px", color: "#1e3a8a", fontWeight: 600, textDecoration: "none" }}>View All</a>
+            </div>
+            <div style={{ padding: "24px" }}>
+              {user.reviews && user.reviews.length > 0 ? (
+                user.reviews.map((review, index) => (
+                  <div key={index} style={{ marginBottom: "20px", paddingBottom: "20px", borderBottom: index < user.reviews.length - 1 ? "1px solid #e5e7eb" : "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
+                      <div style={{ width: "32px", height: "32px", borderRadius: "50%", background: "#1e3a8a", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold", fontSize: "14px" }}>
+                        {review.reviewerName?.charAt(0) || "U"}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: "14px" }}>{review.reviewerName || "Anonymous"}</div>
+                        <div style={{ fontSize: "11px", color: "#6b7280" }}>{formatDateLong(review.createdAt)}</div>
+                      </div>
+                      <div style={{ marginLeft: "auto" }}>{renderStars(review.rating || 0)}</div>
+                    </div>
+                    <p style={{ fontSize: "13px", color: "#4b5563", lineHeight: "1.5", margin: "0 0 0 44px" }}>
+                      "{review.comment || "No comment provided"}"
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: "16px", textAlign: "center", color: "#6b7280" }}>
+                  <i className="bi bi-chat-dots" style={{ fontSize: "24px", display: "block", marginBottom: "8px" }}></i>
+                  No reviews yet
                 </div>
-
-                {/* Join Date */}
-                <div style={{ marginBottom: "24px", paddingTop: "16px", borderTop: "1px solid #e5e7eb" }}>
-                  <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>JOIN DATE</label>
-                  <p style={{ marginTop: "8px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>
-                    {formatDateLong(user.createdAt) || "N/A"}
-                  </p>
-                </div>
-
-                {/* Account Status */}
-                <div style={{ marginBottom: "24px", paddingTop: "8px" }}>
-                  <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>ACCOUNT STATUS</label>
-                  <p style={{ marginTop: "8px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>
-                    {user.userStatus || "N/A"}
-                  </p>
-                </div>
-
-                {/* User ID */}
-                <div style={{ marginBottom: "24px", paddingTop: "8px" }}>
-                  <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>USER ID</label>
-                  <p style={{ marginTop: "8px", fontSize: "12px", color: "#6b7280", fontFamily: "monospace", wordBreak: "break-all" }}>
-                    {user.id}
-                  </p>
-                </div>
-
-                {/* Total Listings */}
-                <div style={{ marginBottom: "24px", paddingTop: "8px" }}>
-                  <label style={{ fontSize: "11px", color: "#6b7280", textTransform: "uppercase", fontWeight: 600 }}>TOTAL LISTINGS</label>
-                  <p style={{ marginTop: "8px", fontSize: "14px", color: "#1f2937", fontWeight: 500 }}>
-                    {user.totalListings || 0}
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "24px", paddingTop: "16px", borderTop: "1px solid #e5e7eb" }}>
-                  <button onClick={() => onDelete && onDelete(user)} style={{ padding: "12px", background: "#dc2626", color: "#fff", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontSize: "14px" }}>
-                    <i className="bi bi-trash-fill"></i> Delete User
-                  </button>
-                  <button onClick={() => onSuspend && onSuspend(user)} style={{ padding: "12px", background: "#fef3c7", color: "#92400e", border: "none", borderRadius: "10px", cursor: "pointer", fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", fontSize: "14px" }}>
-                    <i className="bi bi-slash-circle"></i> Suspend user
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -3228,7 +3158,7 @@ const UserDetailsPage = ({ user, onBack, onDelete, onSuspend }) => {
 };
 
 // ============================================================
-// MAIN ADMIN DASHBOARD
+// MAIN ADMIN DASHBOARD (Users)
 // ============================================================
 const AdminDashboardPage = () => {
   const [allUsers, setAllUsers] = useState([]);
@@ -3236,14 +3166,14 @@ const AdminDashboardPage = () => {
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [pagination, setPagination] = useState({ page: 1, pageSize: ITEMS_PER_PAGE, totalCount: 0, totalPages: 1 });
   const [stats, setStats] = useState({ totalUsers: 0, verifiedHosts: 0, suspendedUsers: 0 });
-  const [loading, setLoading] = useState({ users: true, delete: false });
+  const [loading, setLoading] = useState({ users: true, action: false });
   const [search, setSearch] = useState("");
   const [toast, setToast] = useState(null);
   const [activeNav, setActiveNav] = useState("users");
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [pendingUser, setPendingUser] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const showToast = (message, type = "success") => {
     setToast({ message, type });
@@ -3261,20 +3191,20 @@ const AdminDashboardPage = () => {
     try {
       const config = getAuthConfig();
       if (!config) throw new Error("No token found");
-      
+
       let url = `${USERS_API}?page=${page}&pageSize=${pageSize}`;
       if (searchTerm) {
         url += `&search=${encodeURIComponent(searchTerm)}`;
       }
-      
+
       const response = await axios.get(url, config);
       console.log("👥 Users Data from API:", response.data);
-      
+
       if (response.data.success && response.data.data) {
         const usersData = response.data.data.users || [];
         const statsData = response.data.data.stats || { totalUsers: 0, verifiedHosts: 0, suspendedUsers: 0 };
         const paginationData = response.data.data.pagination || { page: 1, pageSize: ITEMS_PER_PAGE, totalCount: 0, totalPages: 1 };
-        
+
         setAllUsers(usersData);
         setStats({
           totalUsers: statsData.totalUsers || 0,
@@ -3306,7 +3236,7 @@ const AdminDashboardPage = () => {
       if (!config) throw new Error("No token found");
       const response = await axios.get(`${USERS_API}/${userId}`, config);
       console.log("👤 User Details from API:", response.data);
-      
+
       if (response.data.success && response.data.data) {
         return response.data.data;
       }
@@ -3322,91 +3252,117 @@ const AdminDashboardPage = () => {
     }
   }, [getAuthConfig]);
 
-  const handleDeleteUser = async (user) => { 
-    setPendingUser(user); 
-    setConfirmAction("delete"); 
-    setShowConfirmModal(true); 
+  // ===== Generic handler: open confirm modal for delete / suspend / verify / reactivate =====
+  const handleUserAction = (user, action) => {
+    setPendingUser(user);
+    setConfirmAction(action);
+    setShowConfirmModal(true);
   };
-  
-  const handleSuspendUser = async (user) => { 
-    setPendingUser(user); 
-    setConfirmAction("suspend"); 
-    setShowConfirmModal(true); 
+
+  // ===== Update a user's status everywhere it's shown (table row + open details panel) =====
+  const updateUserStatusLocally = (userId, newStatus, extraFields = {}) => {
+    setAllUsers(prev => prev.map(u => (u.id === userId ? { ...u, userStatus: newStatus, ...extraFields } : u)));
+    setSelectedUser(prev => (prev && prev.id === userId ? { ...prev, userStatus: newStatus, ...extraFields } : prev));
+  };
+
+  // ===== Re-sync with the server after verify/suspend/reactivate (in case the backend changed extra fields) =====
+  const refreshAfterAction = async (userId) => {
+    try {
+      // يحدّث الجدول (والإحصائيات لو السيرفر رجع أرقام مختلفة بعد الـ refetch)
+      await fetchUsers(pagination.page, search);
+      // لو صفحة التفاصيل بتاعت اليوزر ده مفتوحة، نحدّثها كمان بآخر بيانات من السيرفر
+      if (selectedUser?.id === userId) {
+        const fresh = await fetchUserDetails(userId);
+        if (fresh) setSelectedUser(fresh);
+      }
+    } catch (e) {
+      console.error("Refresh after action error:", e);
+    }
   };
 
   const executeAction = async () => {
     if (!pendingUser) return;
-    
-    setIsDeleting(true);
-    setLoading(prev => ({ ...prev, delete: true }));
-    
+
+    setIsProcessing(true);
+    setLoading(prev => ({ ...prev, action: true }));
+
     try {
       const config = getAuthConfig();
       if (!config) throw new Error("No token found");
-      
+
       if (confirmAction === "delete") {
-        // Send DELETE request to API
         const deleteUrl = `${USERS_API}/${pendingUser.id}`;
         console.log("🗑️ Deleting user with ID:", pendingUser.id);
-        console.log("🗑️ DELETE URL:", deleteUrl);
-        
-        const response = await axios.delete(deleteUrl, config);
-        console.log("🗑️ Delete response:", response.status, response.data);
-        
-        // Remove user from local state immediately (UI will update instantly)
+
+        await axios.delete(deleteUrl, config);
+
         setAllUsers(prevUsers => prevUsers.filter(u => u.id !== pendingUser.id));
-        
-        // Update stats
-        setStats(prevStats => ({
-          ...prevStats,
-          totalUsers: prevStats.totalUsers - 1
-        }));
-        
-        // Update pagination
+        setStats(prevStats => ({ ...prevStats, totalUsers: Math.max(0, prevStats.totalUsers - 1) }));
         setPagination(prev => ({
           ...prev,
-          totalCount: prev.totalCount - 1,
-          totalPages: Math.ceil((prev.totalCount - 1) / ITEMS_PER_PAGE)
+          totalCount: Math.max(0, prev.totalCount - 1),
+          totalPages: Math.max(1, Math.ceil(Math.max(0, prev.totalCount - 1) / ITEMS_PER_PAGE))
         }));
-        
+
+        // لو كنا في صفحة تفاصيل اليوزر ده وحذفناه، نرجع لقائمة اليوزرز
+        if (selectedUser?.id === pendingUser.id) {
+          setShowUserDetails(false);
+          setSelectedUser(null);
+        }
+
         showToast(`User "${pendingUser.fullName || pendingUser.email}" deleted successfully`, "success");
-        
-        // Refresh data from API to ensure consistency (but keep UI updated)
         await fetchUsers(pagination.page, search);
-        
+
       } else if (confirmAction === "suspend") {
+        await axios.post(`${USERS_API}/${pendingUser.id}/suspend`, {}, config);
+        updateUserStatusLocally(pendingUser.id, "Suspended", { suspendedAt: new Date().toISOString() });
+        setStats(prevStats => ({ ...prevStats, suspendedUsers: prevStats.suspendedUsers + 1 }));
         showToast(`User "${pendingUser.fullName || pendingUser.email}" suspended`, "success");
+        refreshAfterAction(pendingUser.id);
+
+      } else if (confirmAction === "verify") {
+        await axios.post(`${USERS_API}/${pendingUser.id}/verify`, {}, config);
+        updateUserStatusLocally(pendingUser.id, "Verified");
+        setStats(prevStats => ({ ...prevStats, verifiedHosts: prevStats.verifiedHosts + 1 }));
+        showToast(`User "${pendingUser.fullName || pendingUser.email}" verified`, "success");
+        refreshAfterAction(pendingUser.id);
+
+      } else if (confirmAction === "reactivate") {
+        await axios.post(`${USERS_API}/${pendingUser.id}/reactivate`, {}, config);
+        updateUserStatusLocally(pendingUser.id, "Verified", { suspendedAt: null });
+        setStats(prevStats => ({ ...prevStats, suspendedUsers: Math.max(0, prevStats.suspendedUsers - 1) }));
+        showToast(`User "${pendingUser.fullName || pendingUser.email}" reactivated`, "success");
+        refreshAfterAction(pendingUser.id);
       }
-      
+
     } catch (error) {
       console.error("Action error:", error);
-      
+
       if (error.response?.status === 401) {
         showToast("Authentication failed. Please login again.", "error");
         localStorage.removeItem("userToken");
         setTimeout(() => window.location.href = "/login", 2000);
       } else if (error.response?.status === 404) {
         showToast("User not found. It may have been already deleted.", "error");
-        // Remove from local state anyway
         setAllUsers(prevUsers => prevUsers.filter(u => u.id !== pendingUser.id));
       } else {
         showToast(error.response?.data?.message || `Failed to ${confirmAction} user`, "error");
       }
-      
+
     } finally {
-      setIsDeleting(false);
-      setLoading(prev => ({ ...prev, delete: false }));
-      setShowConfirmModal(false); 
-      setPendingUser(null); 
+      setIsProcessing(false);
+      setLoading(prev => ({ ...prev, action: false }));
+      setShowConfirmModal(false);
+      setPendingUser(null);
       setConfirmAction(null);
     }
   };
 
   useEffect(() => {
     const token = getAuthToken();
-    if (!token) { 
-      window.location.href = "/login"; 
-      return; 
+    if (!token) {
+      window.location.href = "/login";
+      return;
     }
     fetchUsers(1, "");
   }, []);
@@ -3435,28 +3391,40 @@ const AdminDashboardPage = () => {
     { id: "settings", icon: "bi-gear", label: "General Settings" },
   ];
 
-  // If viewing user details page
-  if (showUserDetails && selectedUser) {
-    return <UserDetailsPage user={selectedUser} onBack={() => setShowUserDetails(false)} onDelete={handleDeleteUser} onSuspend={handleSuspendUser} />;
-  }
+  const confirmTexts = {
+    delete: {
+      title: "Delete User",
+      message: `Are you sure you want to delete "${pendingUser?.fullName || pendingUser?.email}"? All their data will be permanently removed.`
+    },
+    suspend: {
+      title: "Suspend User",
+      message: `Are you sure you want to suspend "${pendingUser?.fullName || pendingUser?.email}"? They will not be able to use the platform.`
+    },
+    verify: {
+      title: "Verify User",
+      message: `Are you sure you want to verify "${pendingUser?.fullName || pendingUser?.email}"? They will gain full access to host features.`
+    },
+    reactivate: {
+      title: "Reactivate User",
+      message: `Are you sure you want to reactivate "${pendingUser?.fullName || pendingUser?.email}"? Their suspension will be lifted and access restored.`
+    },
+  };
 
   return (
     <div style={{ background: "#f5f6fa", minHeight: "100vh" }}>
       {toast && <Toast msg={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      {showConfirmModal && (
+      {showConfirmModal && confirmAction && (
         <ConfirmModal
-          title={confirmAction === "delete" ? "Delete User" : "Suspend User"}
-          message={confirmAction === "delete" 
-            ? `Are you sure you want to delete "${pendingUser?.fullName || pendingUser?.email}"? All their data will be permanently removed.`
-            : `Are you sure you want to suspend "${pendingUser?.fullName || pendingUser?.email}"? They will not be able to use the platform.`
-          }
+          action={confirmAction}
+          title={confirmTexts[confirmAction].title}
+          message={confirmTexts[confirmAction].message}
           onConfirm={executeAction}
           onCancel={() => {
             setShowConfirmModal(false);
             setPendingUser(null);
             setConfirmAction(null);
           }}
-          loading={isDeleting || loading.delete}
+          loading={isProcessing || loading.action}
         />
       )}
 
@@ -3465,218 +3433,220 @@ const AdminDashboardPage = () => {
 
         {/* Main Content */}
         <main style={{ flex: 1, padding: "32px", overflow: "hidden" }}>
-          {/* Header */}
-          <div style={{ marginBottom: "32px" }}>
-            <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#1f2937", marginBottom: "8px" }}>
-              User Management
-            </h1>
-            <p style={{ color: "#6b7280", fontSize: "14px" }}>
-              Review, monitor and manage roles for all platform participants.
-            </p>
-          </div>
+          {showUserDetails && selectedUser ? (
+            <UserDetailsPage
+              user={selectedUser}
+              onBack={() => setShowUserDetails(false)}
+              onAction={(action) => handleUserAction(selectedUser, action)}
+            />
+          ) : (
+            <>
+              {/* Header */}
+              <div style={{ marginBottom: "32px" }}>
+                <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#1f2937", marginBottom: "8px" }}>
+                  User Management
+                </h1>
+                <p style={{ color: "#6b7280", fontSize: "14px" }}>
+                  Review, monitor and manage roles for all platform participants.
+                </p>
+              </div>
 
-          {/* Stats Cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", marginBottom: "32px" }}>
-            <StatsCard title="TOTAL USERS" value={stats.totalUsers} icon="bi-people-fill" color="#eef2ff"/>
-            <StatsCard title="VERIFIED HOSTS" value={stats.verifiedHosts} icon="bi-shield-check" color="#e6f7e6"/>
-            <StatsCard title="SUSPENDED" value={stats.suspendedUsers} icon="bi-slash-circle" color="#ffebee"/>
-          </div>
+              {/* Stats Cards */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px", marginBottom: "32px" }}>
+                <StatsCard title="TOTAL USERS" value={stats.totalUsers} />
+                <StatsCard title="VERIFIED USERS" value={stats.verifiedHosts} />
+                <StatsCard title="SUSPENDED" value={stats.suspendedUsers} />
+              </div>
 
-          {/* Users Table */}
-          <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #e5e7eb", overflow: "hidden" }}>
-            {/* Search Bar */}
-            <div style={{ padding: "20px", borderBottom: "1px solid #e5e7eb" }}>
-              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-                <div style={{ flex: 1, position: "relative" }}>
-                  <i className="bi bi-search" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }}></i>
-                  <input
-                    type="text"
-                    placeholder="Search by name, email or user ID..."
-                    value={search}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    style={{ width: "100%", padding: "10px 12px 10px 36px", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "14px", outline: "none" }}
-                  />
+              {/* Users Table */}
+              <div style={{ background: "#fff", borderRadius: "12px", border: "1px solid #e5e7eb", overflow: "hidden" }}>
+                {/* Search Bar */}
+                <div style={{ padding: "20px", borderBottom: "1px solid #e5e7eb" }}>
+                  <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                    <div style={{ flex: 1, position: "relative" }}>
+                      <i className="bi bi-search" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af" }}></i>
+                      <input
+                        type="text"
+                        placeholder="Search by name, email or user ID..."
+                        value={search}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        style={{ width: "100%", padding: "10px 12px 10px 36px", border: "1px solid #e5e7eb", borderRadius: "8px", fontSize: "14px", outline: "none" }}
+                      />
+                    </div>
+                    {search && (
+                      <button
+                        onClick={() => handleSearch("")}
+                        style={{ padding: "8px 16px", background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: "8px", cursor: "pointer" }}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
                 </div>
-                {search && (
-                  <button
-                    onClick={() => handleSearch("")}
-                    style={{ padding: "8px 16px", background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: "8px", cursor: "pointer" }}
-                  >
-                    Clear
-                  </button>
+
+                {loading.users ? (
+                  <div style={{ textAlign: "center", padding: "60px" }}><div className="spinner-border text-primary"></div></div>
+                ) : (
+                  <>
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
+                          <tr>
+                            <th style={{ padding: "16px", textAlign: "left", fontSize: "12px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+                              USER PROFILE
+                            </th>
+                            <th style={{ padding: "16px", textAlign: "left", fontSize: "12px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+                              JOIN DATE
+                            </th>
+                            <th style={{ padding: "16px", textAlign: "left", fontSize: "12px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+                              IDENTITY STATUS
+                            </th>
+                            <th style={{ padding: "16px", textAlign: "right", fontSize: "12px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
+                              ACTIONS
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedUsers.length === 0 ? (
+                            <tr><td colSpan="4" style={{ textAlign: "center", padding: "60px", color: "#6b7280" }}>No users found</td></tr>
+                          ) : (
+                            paginatedUsers.map((user) => {
+                              const isDeleted = isUserDeleted(user);
+
+                              return (
+                                <tr key={user.id} style={{
+                                  borderBottom: "1px solid #e5e7eb",
+                                  opacity: isDeleted ? 0.5 : 1,
+                                  background: isDeleted ? "#f9fafb" : "transparent"
+                                }}>
+                                  <td style={{ padding: "16px" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                                      <div style={{
+                                        width: "40px",
+                                        height: "40px",
+                                        borderRadius: "50%",
+                                        background: isDeleted ? "#d1d5db" : "#eef2ff",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: "bold",
+                                        fontSize: "16px",
+                                        color: isDeleted ? "#6b7280" : "#1e3a8a"
+                                      }}>
+                                        {user.fullName?.charAt(0) || user.email?.charAt(0) || "U"}
+                                      </div>
+                                      <div>
+                                        <div style={{ fontWeight: 600, color: "#1f2937", marginBottom: "4px" }}>
+                                          {user.fullName || "Unknown User"}
+                                        </div>
+                                        <div style={{ fontSize: "13px", color: "#6b7280" }}>
+                                          {user.email || "No email provided"}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td style={{ padding: "16px", color: "#6b7280", fontSize: "14px" }}>
+                                    {formatDate(user.joinDate || user.createdAt)}
+                                  </td>
+                                  <td style={{ padding: "16px" }}>
+                                    <StatusBadge user={user} />
+                                  </td>
+                                  <td style={{ padding: "16px", textAlign: "right" }}>
+                                    <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                                      <button
+                                        onClick={async () => {
+                                          console.log("👤 Viewing user:", user);
+                                          const userDetails = await fetchUserDetails(user.id);
+                                          if (userDetails) {
+                                            setSelectedUser(userDetails);
+                                            setShowUserDetails(true);
+                                          }
+                                        }}
+                                        style={{
+                                          padding: "6px 12px",
+                                          background: "#eef2ff",
+                                          border: "none",
+                                          borderRadius: "6px",
+                                          cursor: "pointer",
+                                          fontSize: "12px",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: "5px",
+                                          color: "#1e3a8a"
+                                        }}
+                                      >
+                                        <i className="bi bi-eye"></i> View
+                                      </button>
+                                      {!isDeleted && (
+                                        <button
+                                          onClick={() => handleUserAction(user, "delete")}
+                                          style={{
+                                            padding: "6px 12px",
+                                            background: "#fee2e2",
+                                            border: "none",
+                                            borderRadius: "6px",
+                                            cursor: "pointer",
+                                            fontSize: "12px",
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            gap: "5px",
+                                            color: "#dc2626"
+                                          }}
+                                        >
+                                          <i className="bi bi-trash"></i> Delete
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Pagination */}
+                    {pagination.totalPages > 0 && (
+                      <div style={{ padding: "20px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
+                        <div style={{ fontSize: "14px", color: "#6b7280" }}>
+                          Showing {((pagination.page - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(pagination.page * ITEMS_PER_PAGE, pagination.totalCount)} of {pagination.totalCount} users
+                        </div>
+                        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                          <button
+                            onClick={() => handlePageChange(pagination.page - 1)}
+                            disabled={pagination.page === 1}
+                            style={{ padding: "6px 12px", border: "1px solid #e5e7eb", background: "#fff", borderRadius: "6px", cursor: pagination.page === 1 ? "not-allowed" : "pointer", opacity: pagination.page === 1 ? 0.5 : 1 }}
+                          >
+                            Previous
+                          </button>
+                          {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                            let pageNum = pagination.totalPages <= 5 ? i + 1 : (pagination.page <= 3 ? i + 1 : (pagination.page >= pagination.totalPages - 2 ? pagination.totalPages - 4 + i : pagination.page - 2 + i));
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => handlePageChange(pageNum)}
+                                style={{ padding: "6px 12px", border: "1px solid #e5e7eb", background: pagination.page === pageNum ? "#1e3a8a" : "#fff", color: pagination.page === pageNum ? "#fff" : "#4b5563", borderRadius: "6px", cursor: "pointer", fontWeight: pagination.page === pageNum ? 600 : 400 }}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                          <button
+                            onClick={() => handlePageChange(pagination.page + 1)}
+                            disabled={pagination.page === pagination.totalPages}
+                            style={{ padding: "6px 12px", border: "1px solid #e5e7eb", background: "#fff", borderRadius: "6px", cursor: pagination.page === pagination.totalPages ? "not-allowed" : "pointer", opacity: pagination.page === pagination.totalPages ? 0.5 : 1 }}
+                          >
+                            Next
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
-            </div>
-
-            {loading.users ? (
-              <div style={{ textAlign: "center", padding: "60px" }}><div className="spinner-border text-primary"></div></div>
-            ) : (
-              <>
-                <div style={{ overflowX: "auto" }}>
-                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                    <thead style={{ background: "#f9fafb", borderBottom: "1px solid #e5e7eb" }}>
-                      <tr>
-                        <th style={{ padding: "16px", textAlign: "left", fontSize: "12px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
-                          USER PROFILE
-                        </th>
-                        <th style={{ padding: "16px", textAlign: "left", fontSize: "12px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
-                          JOIN DATE
-                        </th>
-                        <th style={{ padding: "16px", textAlign: "left", fontSize: "12px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
-                          IDENTITY STATUS
-                        </th>
-                        <th style={{ padding: "16px", textAlign: "right", fontSize: "12px", fontWeight: 600, color: "#6b7280", textTransform: "uppercase" }}>
-                          ACTIONS
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedUsers.length === 0 ? (
-                        <tr><td colSpan="4" style={{ textAlign: "center", padding: "60px", color: "#6b7280" }}>No users found</td></tr>
-                      ) : (
-                        paginatedUsers.map((user) => {
-                          // Check if user is deleted
-                          const isDeleted = isUserDeleted(user);
-                          
-                          return (
-                            <tr key={user.id} style={{ 
-                              borderBottom: "1px solid #e5e7eb",
-                              opacity: isDeleted ? 0.5 : 1,
-                              background: isDeleted ? "#f9fafb" : "transparent"
-                            }}>
-                              <td style={{ padding: "16px" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                                  <div style={{ 
-                                    width: "40px", 
-                                    height: "40px", 
-                                    borderRadius: "50%", 
-                                    background: isDeleted ? "#d1d5db" : "#eef2ff", 
-                                    display: "flex", 
-                                    alignItems: "center", 
-                                    justifyContent: "center", 
-                                    fontWeight: "bold", 
-                                    fontSize: "16px", 
-                                    color: isDeleted ? "#6b7280" : "#1e3a8a" 
-                                  }}>
-                                    {user.fullName?.charAt(0) || user.email?.charAt(0) || "U"}
-                                  </div>
-                                  <div>
-                                    <div style={{ fontWeight: 600, color: "#1f2937", marginBottom: "4px" }}>
-                                      {user.fullName || "Unknown User"}
-                                    </div>
-                                    <div style={{ fontSize: "13px", color: "#6b7280" }}>
-                                      {user.email || "No email provided"}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td style={{ padding: "16px", color: "#6b7280", fontSize: "14px" }}>
-                                {formatDate(user.joinDate)}
-                              </td>
-                              <td style={{ padding: "16px" }}>
-                                <StatusBadge user={user} />
-                              </td>
-                              <td style={{ padding: "16px", textAlign: "right" }}>
-                                <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
-                                  <button
-                                    onClick={async () => {
-                                      console.log("👤 Viewing user:", user);
-                                      const userDetails = await fetchUserDetails(user.id);
-                                      if (userDetails) {
-                                        setSelectedUser(userDetails);
-                                        setShowUserDetails(true);
-                                      }
-                                    }}
-                                    style={{ 
-                                      padding: "6px 12px", 
-                                      background: "#eef2ff", 
-                                      border: "none", 
-                                      borderRadius: "6px", 
-                                      cursor: "pointer", 
-                                      fontSize: "12px", 
-                                      display: "inline-flex", 
-                                      alignItems: "center", 
-                                      gap: "5px", 
-                                      color: "#1e3a8a" 
-                                    }}
-                                  >
-                                    <i className="bi bi-eye"></i> View
-                                  </button>
-                                  {/* Only show delete button if user is NOT deleted */}
-                                  {!isDeleted && (
-                                    <button
-                                      onClick={() => handleDeleteUser(user)}
-                                      style={{ 
-                                        padding: "6px 12px", 
-                                        background: "#fee2e2", 
-                                        border: "none", 
-                                        borderRadius: "6px", 
-                                        cursor: "pointer", 
-                                        fontSize: "12px", 
-                                        display: "inline-flex", 
-                                        alignItems: "center", 
-                                        gap: "5px", 
-                                        color: "#dc2626" 
-                                      }}
-                                      disabled={isDeleting}
-                                    >
-                                      {isDeleting ? (
-                                        <span className="spinner-border spinner-border-sm" style={{ width: "12px", height: "12px" }}></span>
-                                      ) : (
-                                        <i className="bi bi-trash"></i>
-                                      )}
-                                      Delete
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                {pagination.totalPages > 0 && (
-                  <div style={{ padding: "20px", borderTop: "1px solid #e5e7eb", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "16px" }}>
-                    <div style={{ fontSize: "14px", color: "#6b7280" }}>
-                      Showing {((pagination.page - 1) * ITEMS_PER_PAGE) + 1} - {Math.min(pagination.page * ITEMS_PER_PAGE, pagination.totalCount)} of {pagination.totalCount} users
-                    </div>
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                      <button
-                        onClick={() => handlePageChange(pagination.page - 1)}
-                        disabled={pagination.page === 1}
-                        style={{ padding: "6px 12px", border: "1px solid #e5e7eb", background: "#fff", borderRadius: "6px", cursor: pagination.page === 1 ? "not-allowed" : "pointer", opacity: pagination.page === 1 ? 0.5 : 1 }}
-                      >
-                        Previous
-                      </button>
-                      {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                        let pageNum = pagination.totalPages <= 5 ? i + 1 : (pagination.page <= 3 ? i + 1 : (pagination.page >= pagination.totalPages - 2 ? pagination.totalPages - 4 + i : pagination.page - 2 + i));
-                        return (
-                          <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            style={{ padding: "6px 12px", border: "1px solid #e5e7eb", background: pagination.page === pageNum ? "#1e3a8a" : "#fff", color: pagination.page === pageNum ? "#fff" : "#4b5563", borderRadius: "6px", cursor: "pointer", fontWeight: pagination.page === pageNum ? 600 : 400 }}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-                      <button
-                        onClick={() => handlePageChange(pagination.page + 1)}
-                        disabled={pagination.page === pagination.totalPages}
-                        style={{ padding: "6px 12px", border: "1px solid #e5e7eb", background: "#fff", borderRadius: "6px", cursor: pagination.page === pagination.totalPages ? "not-allowed" : "pointer", opacity: pagination.page === pagination.totalPages ? 0.5 : 1 }}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+            </>
+          )}
         </main>
       </div>
     </div>

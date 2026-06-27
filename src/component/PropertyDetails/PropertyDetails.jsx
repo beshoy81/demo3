@@ -568,7 +568,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { 
@@ -580,6 +580,7 @@ import { MdOutlineLocalLaundryService, MdOutlineElevator, MdMeetingRoom } from '
 const PropertyDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isBooking, setIsBooking] = useState(false);
@@ -587,6 +588,13 @@ const PropertyDetails = () => {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    // If navigation provided the property in state, use it and skip API call
+    if (location?.state?.property) {
+      setProperty(location.state.property);
+      setLoading(false);
+      return;
+    }
+
     const fetchDetails = async () => {
       try {
         console.log("=== PROPERTY DETAILS ===");

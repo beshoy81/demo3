@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { 
   FaWifi, FaWind, FaMapMarkerAlt, FaShareAlt, FaRegHeart, FaHeart,
@@ -10,6 +10,7 @@ import { MdOutlineLocalLaundryService, MdElevator, MdOutlineMeetingRoom, MdKitch
 const RoomDetails = () => {
   const { propertyId, id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [room, setRoom] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
@@ -25,6 +26,13 @@ const RoomDetails = () => {
   };
 
   useEffect(() => {
+    // If we were navigated here with room data, use it and skip API fetch
+    if (location?.state?.room) {
+      setRoom(location.state.room);
+      setLoading(false);
+      return;
+    }
+
     const fetchData = async () => {
       try {
         const token = localStorage.getItem('userToken')?.replace(/"/g, '');
